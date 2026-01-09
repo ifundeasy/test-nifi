@@ -81,7 +81,7 @@ services:
 
       # UI / proxy (recommend: use LB hostname so links are stable)
       NIFI_WEB_HTTPS_PORT: "8443"
-      NIFI_WEB_PROXY_HOST: "localhost:8443"
+      NIFI_WEB_PROXY_HOST: "localhost:8443,localhost:18443,localhost:18444,localhost:18445"
 
       # --- Cluster ---
       NIFI_CLUSTER_IS_NODE: "true"
@@ -118,7 +118,7 @@ services:
       NIFI_SENSITIVE_PROPS_KEY: "${NIFI_SENSITIVE_PROPS_KEY:?NIFI_SENSITIVE_PROPS_KEY must be set}"
 
       NIFI_WEB_HTTPS_PORT: "8443"
-      NIFI_WEB_PROXY_HOST: "localhost:8443"
+      NIFI_WEB_PROXY_HOST: "localhost:8443,localhost:18443,localhost:18444,localhost:18445"
 
       NIFI_CLUSTER_IS_NODE: "true"
       NIFI_CLUSTER_ADDRESS: "nifi2"
@@ -154,7 +154,7 @@ services:
       NIFI_SENSITIVE_PROPS_KEY: "${NIFI_SENSITIVE_PROPS_KEY:?NIFI_SENSITIVE_PROPS_KEY must be set}"
 
       NIFI_WEB_HTTPS_PORT: "8443"
-      NIFI_WEB_PROXY_HOST: "localhost:8443"
+      NIFI_WEB_PROXY_HOST: "localhost:8443,localhost:18443,localhost:18444,localhost:18445"
 
       NIFI_CLUSTER_IS_NODE: "true"
       NIFI_CLUSTER_ADDRESS: "nifi3"
