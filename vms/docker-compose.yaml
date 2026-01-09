@@ -1,0 +1,42 @@
+# How to run:
+# docker compose up -d --build
+# docker network ls
+# docker network inspect <your_compose_project>_labnet | grep -E '"Name"|"IPv4Address"'
+
+services:
+  ubuntu1: &ub
+    build: .
+    image: ubuntu22-admin:local
+    container_name: ubuntu1
+    hostname: ubuntu1
+    tty: true
+    networks: [labnet]
+
+  ubuntu2:
+    <<: *ub
+    container_name: ubuntu2
+    hostname: ubuntu2
+
+  ubuntu3:
+    <<: *ub
+    container_name: ubuntu3
+    hostname: ubuntu3
+
+  ubuntu4:
+    <<: *ub
+    container_name: ubuntu4
+    hostname: ubuntu4
+
+  ubuntu5:
+    <<: *ub
+    container_name: ubuntu5
+    hostname: ubuntu5
+
+  ubuntu6:
+    <<: *ub
+    container_name: ubuntu6
+    hostname: ubuntu6
+
+networks:
+  labnet:
+    driver: bridge
