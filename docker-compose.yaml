@@ -1,0 +1,192 @@
+services:
+  # -------------------------
+  # ZooKeeper ensemble (3)
+  # -------------------------
+  zoo1:
+    image: zookeeper:3.9
+    container_name: zoo1
+    hostname: zoo1
+    environment:
+      ZOO_MY_ID: "1"
+      ZOO_SERVERS: "server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181"
+    ports:
+      - "22181:2181"
+    volumes:
+      - zoo1_data:/data
+      - zoo1_datalog:/datalog
+
+  zoo2:
+    image: zookeeper:3.9
+    container_name: zoo2
+    hostname: zoo2
+    environment:
+      ZOO_MY_ID: "2"
+      ZOO_SERVERS: "server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181"
+    ports:
+      - "32181:2181"
+    volumes:
+      - zoo2_data:/data
+      - zoo2_datalog:/datalog
+
+  zoo3:
+    image: zookeeper:3.9
+    container_name: zoo3
+    hostname: zoo3
+    environment:
+      ZOO_MY_ID: "3"
+      ZOO_SERVERS: "server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181"
+    ports:
+      - "42181:2181"
+    volumes:
+      - zoo3_data:/data
+      - zoo3_datalog:/datalog
+
+  # -------------------------
+  # NGINX TCP load balancer (TLS pass-through)
+  # -------------------------
+  lb:
+    image: nginx:1.27-alpine
+    container_name: nifi-lb
+    depends_on: [nifi1, nifi2, nifi3]
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+  # -------------------------
+  # NiFi cluster (3) - AUTH=tls (mTLS)
+  # -------------------------
+  nifi1:
+    image: apache/nifi:2.7.2
+    container_name: nifi1
+    hostname: nifi1
+    depends_on: [zoo1, zoo2, zoo3]
+    ports:
+      - "18443:8443"
+    environment:
+      # --- TLS / Auth (mTLS) ---
+      AUTH: "tls"
+      INITIAL_ADMIN_IDENTITY: "CN=admin, OU=NIFI"
+
+      KEYSTORE_PATH: "/opt/certs/keystore.jks"
+      KEYSTORE_TYPE: "JKS"
+      KEYSTORE_PASSWORD: "${NIFI_TLS_PASSWORD:?NIFI_TLS_PASSWORD must be set}"
+
+      TRUSTSTORE_PATH: "/opt/certs/truststore.jks"
+      TRUSTSTORE_TYPE: "JKS"
+      TRUSTSTORE_PASSWORD: "${NIFI_TLS_PASSWORD:?NIFI_TLS_PASSWORD must be set}"
+
+      # Required for encrypted sensitive properties
+      NIFI_SENSITIVE_PROPS_KEY: "${NIFI_SENSITIVE_PROPS_KEY:?NIFI_SENSITIVE_PROPS_KEY must be set}"
+
+      # UI / proxy (recommend: use LB hostname so links are stable)
+      NIFI_WEB_HTTPS_PORT: "8443"
+      NIFI_WEB_PROXY_HOST: "localhost:8443"
+
+      # --- Cluster ---
+      NIFI_CLUSTER_IS_NODE: "true"
+      NIFI_CLUSTER_ADDRESS: "nifi1"
+      NIFI_CLUSTER_NODE_PROTOCOL_PORT: "11443"
+      NIFI_ZK_CONNECT_STRING: "zoo1:2181,zoo2:2181,zoo3:2181"
+      NIFI_ZK_ROOT_NODE: "/nifi"
+    volumes:
+      - ./pki/nifi1:/opt/certs:ro
+      - nifi1_flowfile:/opt/nifi/nifi-current/flowfile_repository
+      - nifi1_content:/opt/nifi/nifi-current/content_repository
+      - nifi1_prov:/opt/nifi/nifi-current/provenance_repository
+      - nifi1_state:/opt/nifi/nifi-current/state
+
+  nifi2:
+    image: apache/nifi:2.7.2
+    container_name: nifi2
+    hostname: nifi2
+    depends_on: [zoo1, zoo2, zoo3]
+    ports:
+      - "18444:8443"
+    environment:
+      AUTH: "tls"
+      INITIAL_ADMIN_IDENTITY: "CN=admin, OU=NIFI"
+
+      KEYSTORE_PATH: "/opt/certs/keystore.jks"
+      KEYSTORE_TYPE: "JKS"
+      KEYSTORE_PASSWORD: "${NIFI_TLS_PASSWORD:?NIFI_TLS_PASSWORD must be set}"
+
+      TRUSTSTORE_PATH: "/opt/certs/truststore.jks"
+      TRUSTSTORE_TYPE: "JKS"
+      TRUSTSTORE_PASSWORD: "${NIFI_TLS_PASSWORD:?NIFI_TLS_PASSWORD must be set}"
+
+      NIFI_SENSITIVE_PROPS_KEY: "${NIFI_SENSITIVE_PROPS_KEY:?NIFI_SENSITIVE_PROPS_KEY must be set}"
+
+      NIFI_WEB_HTTPS_PORT: "8443"
+      NIFI_WEB_PROXY_HOST: "localhost:8443"
+
+      NIFI_CLUSTER_IS_NODE: "true"
+      NIFI_CLUSTER_ADDRESS: "nifi2"
+      NIFI_CLUSTER_NODE_PROTOCOL_PORT: "11443"
+      NIFI_ZK_CONNECT_STRING: "zoo1:2181,zoo2:2181,zoo3:2181"
+      NIFI_ZK_ROOT_NODE: "/nifi"
+    volumes:
+      - ./pki/nifi2:/opt/certs:ro
+      - nifi2_flowfile:/opt/nifi/nifi-current/flowfile_repository
+      - nifi2_content:/opt/nifi/nifi-current/content_repository
+      - nifi2_prov:/opt/nifi/nifi-current/provenance_repository
+      - nifi2_state:/opt/nifi/nifi-current/state
+
+  nifi3:
+    image: apache/nifi:2.7.2
+    container_name: nifi3
+    hostname: nifi3
+    depends_on: [zoo1, zoo2, zoo3]
+    ports:
+      - "18445:8443"
+    environment:
+      AUTH: "tls"
+      INITIAL_ADMIN_IDENTITY: "CN=admin, OU=NIFI"
+
+      KEYSTORE_PATH: "/opt/certs/keystore.jks"
+      KEYSTORE_TYPE: "JKS"
+      KEYSTORE_PASSWORD: "${NIFI_TLS_PASSWORD:?NIFI_TLS_PASSWORD must be set}"
+
+      TRUSTSTORE_PATH: "/opt/certs/truststore.jks"
+      TRUSTSTORE_TYPE: "JKS"
+      TRUSTSTORE_PASSWORD: "${NIFI_TLS_PASSWORD:?NIFI_TLS_PASSWORD must be set}"
+
+      NIFI_SENSITIVE_PROPS_KEY: "${NIFI_SENSITIVE_PROPS_KEY:?NIFI_SENSITIVE_PROPS_KEY must be set}"
+
+      NIFI_WEB_HTTPS_PORT: "8443"
+      NIFI_WEB_PROXY_HOST: "localhost:8443"
+
+      NIFI_CLUSTER_IS_NODE: "true"
+      NIFI_CLUSTER_ADDRESS: "nifi3"
+      NIFI_CLUSTER_NODE_PROTOCOL_PORT: "11443"
+      NIFI_ZK_CONNECT_STRING: "zoo1:2181,zoo2:2181,zoo3:2181"
+      NIFI_ZK_ROOT_NODE: "/nifi"
+    volumes:
+      - ./pki/nifi3:/opt/certs:ro
+      - nifi3_flowfile:/opt/nifi/nifi-current/flowfile_repository
+      - nifi3_content:/opt/nifi/nifi-current/content_repository
+      - nifi3_prov:/opt/nifi/nifi-current/provenance_repository
+      - nifi3_state:/opt/nifi/nifi-current/state
+
+volumes:
+  zoo1_data: {}
+  zoo1_datalog: {}
+  zoo2_data: {}
+  zoo2_datalog: {}
+  zoo3_data: {}
+  zoo3_datalog: {}
+
+  nifi1_flowfile: {}
+  nifi1_content: {}
+  nifi1_prov: {}
+  nifi1_state: {}
+
+  nifi2_flowfile: {}
+  nifi2_content: {}
+  nifi2_prov: {}
+  nifi2_state: {}
+
+  nifi3_flowfile: {}
+  nifi3_content: {}
+  nifi3_prov: {}
+  nifi3_state: {}

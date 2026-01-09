@@ -1,0 +1,17 @@
+[ req ]
+prompt = no
+distinguished_name = dn
+req_extensions = req_ext
+
+[ dn ]
+CN = nifi1
+OU = NIFI
+
+[ req_ext ]
+subjectAltName = @alt_names
+extendedKeyUsage = serverAuth, clientAuth
+
+[ alt_names ]
+DNS.1 = nifi1
+DNS.2 = localhost
+IP.1  = 127.0.0.1
